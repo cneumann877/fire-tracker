@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fire Department Tracker - Enterprise Edition</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-red: #dc3545;
+            --dark-red: #b02a37;
+            --light-gray: #f8f9fa;
+            --border-color: #dee2e6;
+        }
+
+        body {
+            background-color: var(--light-gray);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .nav-tabs .nav-link {
+            color: #6c757d;
+            border: none;
+            padding: 12px 20px;
+            margin-right: 5px;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .nav-tabs .nav-link.active {
+            background-color: white;
+            color: var(--primary-red);
+            border-bottom: 3px solid var(--primary-red);
+        }
+
+        .card {
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: none;
+            border-radius: 12px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-red);
+            border-color: var(--primary-red);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--dark-red);
+            border-color: var(--dark-red);
+        }
+
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-completed {
+            background-color: #cce5ff;
+            color: #0c5aa6;
+            border: 1px solid #b8daff;
+        }
+
+        .loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            display: none;
+        }
+
+        .auth-modal .modal-content {
+            border-radius: 15px;
+        }
+
+        .badge-input {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .pin-input {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            text-align: center;
+            letter-spacing: 0.5em;
+        }
+
+        .enterprise-header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+        }
+
+        .metric-card {
+            transition: transform 0.2s;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="#">
+                <i class="fas fa-fire-flame-curved"></i> Fire Department Tracker
+            </a>
+            <div class="d-flex align-items-center">
+                <select class="form-select form-select-sm me-3" id="currentStation" style="width: auto;">
+                    <option value="">Select Station</option>
+                    <option value="Station 1">Station 1</option>
+                    <option value="Station 2">Station 2</option>
+                    <option value="Station 3">Station 3</option>
+                    <option value="Station 4">Station 4</option>
+                    <option value="Station 5">Station 5</option>
+                </select>
+                <button class="btn btn-outline-light btn-sm me-2" id="settingsBtn">
+                    <i class="fas fa-cog"></i> Settings
+                </button>
+                <button class="btn btn-outline-light btn-sm" id="adminBtn">
+                    <i class="fas fa-user-shield"></i> Admin
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid py-4">
+        <!-- Enterprise Header -->
+        <div class="enterprise-header">
+            <div class="row">
+                <div class="col-md-8">
+                    <h4><i class="fas fa-shield-alt"></i> Enterprise Fire Management System</h4>
+                    <p class="mb-0">Comprehensive incident, event, and training management with enterprise-level security</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="text-white-50">
+                        <div><i class="fas fa-clock"></i> <span id="currentTime"></span></div>
+                        <div><i class="fas fa-building"></i> <span id="currentStationDisplay">No Station Selected</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-tabs mb-4" id="mainTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="incidents-tab" data-bs-toggle="tab" data-bs-target="#incidents">
+                    <i class="fas fa-fire-extinguisher"></i> Incidents
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="events-training-tab" data-bs-toggle="tab" data-bs-target="#events-training">
+                    <i class="fas fa-calendar-alt"></i> Events & Training
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="personnel-tab" data-bs-toggle="tab" data-bs-target="#personnel">
+                    <i class="fas fa-users"></i> Personnel
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports">
+                    <i class="fas fa-chart-line"></i> Reports
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="mainTabContent">
+            <div class="tab-pane fade show active" id="dashboard" role="tabpanel"></div>
+            <div class="tab-pane fade" id="incidents" role="tabpanel"></div>
+            <div class="tab-pane fade" id="events-training" role="tabpanel"></div>
+            <div class="tab-pane fade" id="personnel" role="tabpanel"></div>
+            <div class="tab-pane fade" id="reports" role="tabpanel"></div>
+        </div>
+    </div>
+
+    <!-- Badge/PIN Authentication Modal -->
+    <div class="modal fade auth-modal" id="authModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-shield-alt"></i> Authentication Required
+                    </h5>
+                </div>
+                <div class="modal-body text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-id-badge fa-3x text-primary mb-3"></i>
+                        <h5 id="authModalTitle">Sign In Required</h5>
+                        <p class="text-muted" id="authModalDescription">Please enter your badge number and PIN</p>
+                    </div>
+                    <form id="authForm">
+                        <div class="mb-3">
+                            <label for="badgeNumber" class="form-label">Badge Number</label>
+                            <input type="text" class="form-control form-control-lg badge-input" id="badgeNumber" 
+                                   placeholder="001" maxlength="10" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="pinNumber" class="form-label">PIN</label>
+                            <input type="password" class="form-control form-control-lg pin-input" id="pinNumber" 
+                                   placeholder="••••" maxlength="6" required>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-sign-in-alt"></i> Sign In
+                            </button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        </div>
+                    </form>
+                    <div id="authError" class="alert alert-danger mt-3" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div class="loader" id="loader">
+        <div class="spinner-border text-danger" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Bootstrap & Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Main Application Script -->
+    <script>
+        // ===== ENTERPRISE APPLICATION STATE =====
+        const appState = {
+            currentStation: localStorage.getItem('currentStation') || '',
+            currentUser: null,
+            incidents: [],
+            events: [],
+            personnel: [],
+            roles: ['Captain', 'Lieutenant', 'Engineer', 'Firefighter', 'EMT', 'Paramedic', 'Chief'],
+            stations: ['Station 1', 'Station 2', 'Station 3', 'Station 4', 'Station 5'],
+            apparatus: ['Engine 1', 'Engine 2', 'Ladder 1', 'Rescue 1', 'Medic 1', 'Squad 1'],
+            apiEndpoint: window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : '/api'
+        };
+
+        // ===== UTILITY FUNCTIONS =====
+        const utils = {
+            generateId: () => 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+            
+            formatDateTime: (date) => {
+                return new Date(date).toLocaleString('en-US', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                });
+            },
+
+            showAlert: (message, type = 'info') => {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+                alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
+                alertDiv.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.body.appendChild(alertDiv);
+                setTimeout(() => alertDiv.remove(), 5000);
+            },
+
+            validateBadgePin: async (badge, pin) => {
+                try {
+                    const response = await fetch(`${appState.apiEndpoint}/firefighters/authenticate`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ badge, pin })
+                    });
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        return { valid: true, personnel: result.firefighter };
+                    } else {
+                        const error = await response.json();
+                        return { valid: false, message: error.error || 'Authentication failed' };
+                    }
+                } catch (error) {
+                    // Fallback to localStorage/memory authentication
+                    const personnel = appState.personnel.find(p => p.badge === badge);
+                    if (!personnel) return { valid: false, message: 'Badge number not found' };
+                    if (personnel.pin !== pin) return { valid: false, message: 'Invalid PIN' };
+                    return { valid: true, personnel };
+                }
+            },
+
+            saveToDatabase: async (endpoint, data) => {
+                try {
+                    const response = await fetch(`${appState.apiEndpoint}/${endpoint}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    return response.ok;
+                } catch (error) {
+                    console.error('Database save error:', error);
+                    return false;
+                }
+            },
+
+            loadFromDatabase: async (endpoint) => {
+                try {
+                    const response = await fetch(`${appState.apiEndpoint}/${endpoint}`);
+                    if (response.ok) {
+                        return await response.json();
+                    }
+                } catch (error) {
+                    console.error('Database load error:', error);
+                }
+                return null;
+            }
+        };
+
+        // ===== AUTHENTICATION SYSTEM =====
+        let authPromiseResolve, authPromiseReject;
+
+        function requireAuthentication(action = 'perform this action') {
+            return new Promise((resolve, reject) => {
+                authPromiseResolve = resolve;
+                authPromiseReject = reject;
+                
+                document.getElementById('authModalTitle').textContent = 'Authentication Required';
+                document.getElementById('authModalDescription').textContent = `Please sign in to ${action}`;
+                
+                const modal = new bootstrap.Modal(document.getElementById('authModal'));
+                modal.show();
+            });
+        }
+
+        // Authentication form handler
+        document.getElementById('authForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const badge = document.getElementById('badgeNumber').value.trim();
+            const pin = document.getElementById('pinNumber').value.trim();
+            const errorDiv = document.getElementById('authError');
+            
+            if (!badge || !pin) {
+                errorDiv.textContent = 'Please enter both badge number and PIN';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            const authResult = await utils.validateBadgePin(badge, pin);
+            
+            if (authResult.valid) {
+                appState.currentUser = authResult.personnel;
+                bootstrap.Modal.getInstance(document.getElementById('authModal')).hide();
+                document.getElementById('authForm').reset();
+                errorDiv.style.display = 'none';
+                
+                if (authPromiseResolve) {
+                    authPromiseResolve(authResult.personnel);
+                }
+            } else {
+                errorDiv.textContent = authResult.message;
+                errorDiv.style.display = 'block';
+            }
+        });
+
+        // ===== DASHBOARD MODULE =====
+        function initDashboard() {
+            const container = document.getElementById('dashboard');
+            container.innerHTML = `
+                <div class="row g-4">
+                    <!-- Metrics Cards -->
+                    <div class="col-xl-3 col-md-6">
+                        <div class="card metric-card bg-gradient-danger text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h4 class="mb-0" id="activeIncidentsCount">0</h4>
+                                        <p class="mb-0">Active Incidents</p>
+                                    </div>
+                                    <div class="align-self-center">
+                                        <i class="fas fa-fire-extinguisher fa-2x opacity-75"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-md-6">
+                        <div class="card metric-card bg-gradient-primary text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h4 class="mb-0" id="activeEventsCount">0</h4>
+                                        <p class="mb-0">Active Events</p>
+                                    </div>
+                                    <div class="align-self-center">
+                                        <i class="fas fa-calendar-check fa-2x opacity-75"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-md-6">
+                        <div class="card metric-card bg-gradient-success text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h4 class="mb-0" id="personnelCount">0</h4>
+                                        <p class="mb-0">Active Personnel</p>
+                                    </div>
+                                    <div class="align-self-center">
+                                        <i class="fas fa-users fa-2x opacity-75"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-md-6">
+                        <div class="card metric-card bg-gradient-info text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h4 class="mb-0" id="monthlyResponsesCount">0</h4>
+                                        <p class="mb-0">Monthly Responses</p>
+                                    </div>
+                                    <div class="align-self-center">
+                                        <i class="fas fa-chart-line fa-2x opacity-75"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-4">
+                    <!-- Recent Activity -->
+                    <div class="col-lg-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5><i class="fas fa-clock"></i> Recent Activity</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="recentActivity">
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-history fa-2x text-muted mb-3"></i>
+                                        <p class="text-muted">No recent activity</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="col-lg-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5><i class="fas fa-bolt"></i> Quick Actions</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-danger btn-lg" onclick="createNewIncident()">
+                                        <i class="fas fa-plus"></i> New Incident
+                                    </button>
+                                    <button class="btn btn-primary btn-lg" onclick="createNewEvent()">
+                                        <i class="fas fa-calendar-plus"></i> New Event
+                                    </button>
+                                    <button class="btn btn-success btn-lg" onclick="viewPersonnel()">
+                                        <i class="fas fa-users"></i> Personnel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            updateDashboardMetrics();
+        }
+
+        function updateDashboardMetrics() {
+            // Update metrics (this would normally come from database)
+            document.getElementById('activeIncidentsCount').textContent = 
+                appState.incidents.filter(i => i.active).length;
+            document.getElementById('activeEventsCount').textContent = 
+                appState.events.filter(e => e.status === 'active').length;
+            document.getElementById('personnelCount').textContent = 
+                appState.personnel.filter(p => p.status === 'active').length;
+            document.getElementById('monthlyResponsesCount').textContent = 
+                appState.incidents.filter(i => {
+                    const incidentDate = new Date(i.created_at || i.time);
+                    const currentMonth = new Date();
+                    return incidentDate.getMonth() === currentMonth.getMonth() && 
+                           incidentDate.getFullYear() === currentMonth.getFullYear();
+                }).length;
+        }
+
+        // ===== INCIDENTS MODULE =====
+        function initIncidents() {
+            const container = document.getElementById('incidents');
+            container.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3><i class="fas fa-fire-extinguisher"></i> Incident Management</h3>
+                    <button class="btn btn-danger" onclick="createNewIncident()">
+                        <i class="fas fa-plus"></i> New Incident
+                    </button>
+                </div>
+
+                <div class="row">
+                    <div class="col-lg-4">
+                        <div class="card">
+                            <div class="card-header bg-danger text-white">
+                                <h5><i class="fas fa-fire"></i> Active Incidents</h5>
+                            </div>
+                            <div class="card-body" id="activeIncidentsList">
+                                <div class="text-center py-4">
+                                    <div class="spinner-border text-danger" role="status"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5><i class="fas fa-history"></i> Recent Incidents</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Location</th>
+                                                <th>Type</th>
+                                                <th>Time</th>
+                                                <th>Status</th>
+                                                <th>Personnel</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="incidentsTableBody">
+                                            <tr>
+                                                <td colspan="7" class="text-center">
+                                                    <div class="spinner-border text-secondary" role="status"></div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            loadIncidents();
+        }
+
+        async function createNewIncident() {
+            try {
+                const user = await requireAuthentication('create a new incident');
+                
+                const location = prompt('Incident Location:', '');
+                const type = prompt('Incident Type:', '');
+                
+                if (!location || !type) return;
+                
+                const incident = {
+                    id: utils.generateId(),
+                    location: location,
+                    incident_type: type,
+                    description: '',
+                    time: new Date().toISOString(),
+                    active: 1,
+                    created_by: user.badge,
+                    attendees: []
+                };
+                
+                appState.incidents.push(incident);
+                await utils.saveToDatabase('incidents', incident);
+                
+                utils.showAlert('Incident created successfully!', 'success');
+                loadIncidents();
+                updateDashboardMetrics();
+                
+            } catch (error) {
+                console.error('Error creating incident:', error);
+            }
+        }
+
+        function loadIncidents() {
+            // This would normally load from database
+            const activeIncidents = appState.incidents.filter(i => i.active);
+            const activeContainer = document.getElementById('activeIncidentsList');
+            const tableBody = document.getElementById('incidentsTableBody');
+            
+            if (activeIncidents.length === 0) {
+                activeContainer.innerHTML = '<p class="text-center text-muted">No active incidents</p>';
+            } else {
+                activeContainer.innerHTML = activeIncidents.map(incident => `
+                    <div class="card mb-2 border-danger">
+                        <div class="card-body">
+                            <h6 class="card-title">${incident.location}</h6>
+                            <p class="card-text small">${incident.incident_type}</p>
+                            <p class="card-text"><small class="text-muted">${utils.formatDateTime(incident.time)}</small></p>
+                            <button class="btn btn-sm btn-primary" onclick="signInToIncident('${incident.id}')">
+                                <i class="fas fa-sign-in-alt"></i> Sign In
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            tableBody.innerHTML = appState.incidents.slice(-10).map(incident => `
+                <tr>
+                    <td><code>${incident.id.substr(-8)}</code></td>
+                    <td>${incident.location}</td>
+                    <td><span class="badge bg-secondary">${incident.incident_type}</span></td>
+                    <td>${utils.formatDateTime(incident.time)}</td>
+                    <td>
+                        <span class="badge ${incident.active ? 'bg-danger' : 'bg-success'}">
+                            ${incident.active ? 'Active' : 'Closed'}
+                        </span>
+                    </td>
+                    <td>${(incident.attendees || []).length}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="viewIncident('${incident.id}')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        ${incident.active ? `
+                            <button class="btn btn-sm btn-outline-success" onclick="closeIncident('${incident.id}')">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        ` : ''}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function signInToIncident(incidentId) {
+            try {
+                const user = await requireAuthentication('sign in to this incident');
+                
+                const incident = appState.incidents.find(i => i.id === incidentId);
+                if (!incident) return;
+                
+                if (!incident.attendees) incident.attendees = [];
+                
+                // Check if already signed in
+                if (incident.attendees.some(a => a.badge === user.badge)) {
+                    utils.showAlert('You are already signed in to this incident', 'warning');
+                    return;
+                }
+                
+                incident.attendees.push({
+                    badge: user.badge,
+                    name: user.name,
+                    station: appState.currentStation,
+                    check_in_time: new Date().toISOString()
+                });
+                
+                await utils.saveToDatabase(`incidents/${incidentId}/attendees`, {
+                    badge: user.badge,
+                    check_in_time: new Date().toISOString()
+                });
+                
+                utils.showAlert(`${user.name} signed in to incident`, 'success');
+                loadIncidents();
+                
+            } catch (error) {
+                console.error('Error signing in to incident:', error);
+            }
+        }
+
+        // ===== EVENTS & TRAINING MODULE =====
+        function initEventsTraining() {
+            const container = document.getElementById('events-training');
+            container.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3><i class="fas fa-calendar-check"></i> Events & Training Management</h3>
+                    <button class="btn btn-primary" onclick="createNewEvent()">
+                        <i class="fas fa-plus"></i> New Event
+                    </button>
+                </div>
+
+                <div class="row">
+                    <!-- Event Creation Form -->
+                    <div class="col-lg-4">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <h5><i class="fas fa-calendar-plus"></i> Quick Event</h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="quickEventForm">
+                                    <div class="mb-3">
+                                        <label class="form-label">Event Name</label>
+                                        <input type="text" class="form-control" id="eventName" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Type</label>
+                                        <select class="form-select" id="eventType" required>
+                                            <option value="">Select Type</option>
+                                            <option value="training">Training</option>
+                                            <option value="drill">Drill</option>
+                                            <option value="meeting">Meeting</option>
+                                            <option value="community">Community Event</option>
+                                            <option value="maintenance">Maintenance</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Start Date/Time</label>
+                                        <input type="datetime-local" class="form-control" id="eventStartTime" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Duration (hours)</label>
+                                        <input type="number" class="form-control" id="eventDuration" min="0.5" step="0.5" value="1" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100">Create Event</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Events List -->
+                    <div class="col-lg-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                                    <li class="nav-item">
+                                        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#activeEvents">
+                                            Active Events
+                                        </button>
+                                    </li>
+                                    <li class="nav-item">
+                                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#upcomingEvents">
+                                            Upcoming Events
+                                        </button>
+                                    </li>
+                                    <li class="nav-item">
+                                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#completedEvents">
+                                            Completed Events
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="card-body">
+                                <div class="tab-content">
+                                    <div class="tab-pane fade show active" id="activeEvents">
+                                        <div id="activeEventsList">Loading...</div>
+                                    </div>
+                                    <div class="tab-pane fade" id="upcomingEvents">
+                                        <div id="upcomingEventsList">Loading...</div>
+                                    </div>
+                                    <div class="tab-pane fade" id="completedEvents">
+                                        <div id="completedEventsList">Loading...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Set default start time to current time
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('eventStartTime').value = now.toISOString().slice(0, 16);
+
+            // Handle quick event form
+            document.getElementById('quickEventForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                try {
+                    const user = await requireAuthentication('create an event');
+                    await createEventFromForm(user);
+                } catch (error) {
+                    console.error('Error creating event:', error);
+                }
+            });
+
+            loadEvents();
+        }
+
+        async function createEventFromForm(user) {
+            const eventData = {
+                id: utils.generateId(),
+                event_name: document.getElementById('eventName').value,
+                event_type: document.getElementById('eventType').value,
+                start_date: document.getElementById('eventStartTime').value,
+                duration: parseFloat(document.getElementById('eventDuration').value),
+                status: 'pending',
+                created_by: user.name,
+                created_by_badge: user.badge,
+                attendees: []
+            };
+
+            appState.events.push(eventData);
+            await utils.saveToDatabase('events', eventData);
+            
+            utils.showAlert('Event created successfully!', 'success');
+            document.getElementById('quickEventForm').reset();
+            loadEvents();
+        }
+
+        async function createNewEvent() {
+            try {
+                const user = await requireAuthentication('create a new event');
+                
+                const eventName = prompt('Event Name:', '');
+                const eventType = prompt('Event Type (training, drill, meeting):', 'training');
+                
+                if (!eventName || !eventType) return;
+                
+                const event = {
+                    id: utils.generateId(),
+                    event_name: eventName,
+                    event_type: eventType,
+                    start_date: new Date().toISOString(),
+                    status: 'active',
+                    created_by: user.name,
+                    created_by_badge: user.badge,
+                    attendees: []
+                };
+                
+                appState.events.push(event);
+                await utils.saveToDatabase('events', event);
+                
+                utils.showAlert('Event created successfully!', 'success');
+                loadEvents();
+                
+            } catch (error) {
+                console.error('Error creating event:', error);
+            }
+        }
+
+        function loadEvents() {
+            const activeEvents = appState.events.filter(e => e.status === 'active');
+            const upcomingEvents = appState.events.filter(e => e.status === 'pending');
+            const completedEvents = appState.events.filter(e => e.status === 'completed');
+
+            loadEventsList('activeEventsList', activeEvents, 'active');
+            loadEventsList('upcomingEventsList', upcomingEvents, 'upcoming');
+            loadEventsList('completedEventsList', completedEvents, 'completed');
+        }
+
+        function loadEventsList(containerId, events, type) {
+            const container = document.getElementById(containerId);
+            
+            if (events.length === 0) {
+                container.innerHTML = `<p class="text-center text-muted">No ${type} events</p>`;
+                return;
+            }
+
+            container.innerHTML = events.map(event => `
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="card-title">${event.event_name}</h6>
+                                <p class="card-text">
+                                    <span class="badge bg-secondary">${event.event_type}</span>
+                                    <small class="text-muted ms-2">${utils.formatDateTime(event.start_date)}</small>
+                                </p>
+                                <p class="card-text"><small>Created by: ${event.created_by}</small></p>
+                                ${event.attendees ? `<p class="card-text"><small>Attendees: ${event.attendees.length}</small></p>` : ''}
+                            </div>
+                            <div class="btn-group-vertical">
+                                ${type === 'active' ? `
+                                    <button class="btn btn-sm btn-primary" onclick="signInToEvent('${event.id}')">
+                                        <i class="fas fa-sign-in-alt"></i> Sign In
+                                    </button>
+                                ` : ''}
+                                <button class="btn btn-sm btn-outline-primary" onclick="viewEvent('${event.id}')">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function signInToEvent(eventId) {
+            try {
+                const user = await requireAuthentication('sign in to this event');
+                
+                const event = appState.events.find(e => e.id === eventId);
+                if (!event) return;
+                
+                if (!event.attendees) event.attendees = [];
+                
+                // Check if already signed in
+                if (event.attendees.some(a => a.badge === user.badge)) {
+                    utils.showAlert('You are already signed in to this event', 'warning');
+                    return;
+                }
+                
+                event.attendees.push({
+                    badge: user.badge,
+                    name: user.name,
+                    station: appState.currentStation,
+                    check_in_time: new Date().toISOString()
+                });
+                
+                await utils.saveToDatabase(`events/${eventId}/attendees`, {
+                    badge: user.badge,
+                    check_in_time: new Date().toISOString()
+                });
+                
+                utils.showAlert(`${user.name} signed in to event`, 'success');
+                loadEvents();
+                
+            } catch (error) {
+                console.error('Error signing in to event:', error);
+            }
+        }
+
+        // ===== PERSONNEL MODULE =====
+        function initPersonnel() {
+            const container = document.getElementById('personnel');
+            container.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3><i class="fas fa-users"></i> Personnel Management</h3>
+                    <button class="btn btn-success" onclick="addNewPersonnel()">
+                        <i class="fas fa-user-plus"></i> Add Personnel
+                    </button>
+                </div>
+
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h5><i class="fas fa-list"></i> Personnel Directory</h5>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <input type="text" class="form-control" id="personnelSearch" 
+                                               placeholder="Search personnel...">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Badge</th>
+                                                <th>Name</th>
+                                                <th>Rank</th>
+                                                <th>Station</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="personnelTableBody">
+                                            <tr>
+                                                <td colspan="6" class="text-center">
+                                                    <div class="spinner-border text-secondary" role="status"></div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            loadPersonnel();
+        }
+
+        function loadPersonnel() {
+            const tableBody = document.getElementById('personnelTableBody');
+            
+            if (appState.personnel.length === 0) {
+                // Load default personnel
+                appState.personnel = [
+                    { badge: '001', name: 'John Smith', rank: 'Captain', station: 'Station 1', pin: '1234', status: 'active' },
+                    { badge: '002', name: 'Jane Doe', rank: 'Lieutenant', station: 'Station 1', pin: '2345', status: 'active' },
+                    { badge: '003', name: 'Mike Johnson', rank: 'Firefighter', station: 'Station 2', pin: '3456', status: 'active' },
+                    { badge: '004', name: 'Sarah Williams', rank: 'Engineer', station: 'Station 2', pin: '4567', status: 'active' },
+                    { badge: '005', name: 'Tom Brown', rank: 'Firefighter', station: 'Station 3', pin: '5678', status: 'active' }
+                ];
+            }
+            
+            tableBody.innerHTML = appState.personnel.map(person => `
+                <tr>
+                    <td><code>${person.badge}</code></td>
+                    <td>${person.name}</td>
+                    <td><span class="badge bg-info">${person.rank}</span></td>
+                    <td>${person.station}</td>
+                    <td>
+                        <span class="badge ${person.status === 'active' ? 'bg-success' : 'bg-secondary'}">
+                            ${person.status}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-primary" onclick="viewPersonnelDetails('${person.badge}')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-outline-warning" onclick="resetPersonnelPin('${person.badge}')">
+                                <i class="fas fa-key"></i> Reset PIN
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function resetPersonnelPin(badge) {
+            const newPin = prompt('Enter new 4-digit PIN:', '');
+            if (newPin && /^\d{4}$/.test(newPin)) {
+                const person = appState.personnel.find(p => p.badge === badge);
+                if (person) {
+                    person.pin = newPin;
+                    await utils.saveToDatabase(`firefighters/${badge}`, { pin: newPin });
+                    utils.showAlert('PIN reset successfully', 'success');
+                }
+            } else {
+                utils.showAlert('Please enter a valid 4-digit PIN', 'danger');
+            }
+        }
+
+        // ===== REPORTS MODULE =====
+        function initReports() {
+            const container = document.getElementById('reports');
+            container.innerHTML = `
+                <h3><i class="fas fa-chart-line"></i> Enterprise Reports</h3>
+                
+                <div class="row mt-4">
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header bg-info text-white">
+                                <h5>Activity Summary</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="activityChart" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header bg-success text-white">
+                                <h5>Response Statistics</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row text-center">
+                                    <div class="col-md-4">
+                                        <h4 class="text-success">${appState.incidents.length}</h4>
+                                        <p>Total Incidents</p>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h4 class="text-primary">${appState.events.length}</h4>
+                                        <p>Total Events</p>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h4 class="text-info">${appState.personnel.length}</h4>
+                                        <p>Personnel</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ===== UTILITY FUNCTIONS =====
+        function createNewIncident() {
+            document.getElementById('incidents-tab').click();
+            // The createNewIncident function is already defined in the incidents module
+        }
+
+        function createNewEvent() {
+            document.getElementById('events-training-tab').click();
+            // The createNewEvent function is already defined in the events module
+        }
+
+        function viewPersonnel() {
+            document.getElementById('personnel-tab').click();
+        }
+
+        function viewIncident(id) {
+            const incident = appState.incidents.find(i => i.id === id);
+            if (incident) {
+                alert(`Incident Details:\n\nID: ${id}\nLocation: ${incident.location}\nType: ${incident.incident_type}\nTime: ${utils.formatDateTime(incident.time)}\nAttendees: ${(incident.attendees || []).length}`);
+            }
+        }
+
+        function viewEvent(id) {
+            const event = appState.events.find(e => e.id === id);
+            if (event) {
+                alert(`Event Details:\n\nName: ${event.event_name}\nType: ${event.event_type}\nStart: ${utils.formatDateTime(event.start_date)}\nCreated by: ${event.created_by}\nAttendees: ${(event.attendees || []).length}`);
+            }
+        }
+
+        function viewPersonnelDetails(badge) {
+            const person = appState.personnel.find(p => p.badge === badge);
+            if (person) {
+                alert(`Personnel Details:\n\nBadge: ${person.badge}\nName: ${person.name}\nRank: ${person.rank}\nStation: ${person.station}\nStatus: ${person.status}`);
+            }
+        }
+
+        // ===== INITIALIZATION =====
+        document.addEventListener('DOMContentLoaded', function() {
+            // Update current time every second
+            setInterval(() => {
+                document.getElementById('currentTime').textContent = 
+                    new Date().toLocaleTimeString();
+            }, 1000);
+
+            // Initialize station selector
+            const stationSelect = document.getElementById('currentStation');
+            stationSelect.value = appState.currentStation;
+            document.getElementById('currentStationDisplay').textContent = 
+                appState.currentStation || 'No Station Selected';
+
+            stationSelect.addEventListener('change', (e) => {
+                appState.currentStation = e.target.value;
+                localStorage.setItem('currentStation', e.target.value);
+                document.getElementById('currentStationDisplay').textContent = 
+                    e.target.value || 'No Station Selected';
+                utils.showAlert('Station changed to ' + (e.target.value || 'None'), 'success');
+            });
+
+            // Initialize tabs
+            document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => {
+                tab.addEventListener('shown.bs.tab', function(e) {
+                    const target = e.target.getAttribute('data-bs-target');
+                    switch(target) {
+                        case '#dashboard':
+                            initDashboard();
+                            break;
+                        case '#incidents':
+                            initIncidents();
+                            break;
+                        case '#events-training':
+                            initEventsTraining();
+                            break;
+                        case '#personnel':
+                            initPersonnel();
+                            break;
+                        case '#reports':
+                            initReports();
+                            break;
+                    }
+                });
+            });
+
+            // Admin and settings buttons (placeholder)
+            document.getElementById('adminBtn').addEventListener('click', () => {
+                utils.showAlert('Admin panel coming soon!', 'info');
+            });
+            
+            document.getElementById('settingsBtn').addEventListener('click', () => {
+                utils.showAlert('Settings panel coming soon!', 'info');
+            });
+
+            // Initialize dashboard
+            initDashboard();
+        });
+    </script>
+</body>
+</html>
