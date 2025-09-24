@@ -1,0 +1,86 @@
+# Dockerfile for Fire Department Tracker Enterprise Edition
+
+FROM node:18-alpine AS builder
+
+# Set working directory
+WORKDIR /app
+
+# Install dependencies for SQLite compilation
+RUN apk add --no-cache python3 make g++ sqlite
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy application files
+COPY . .
+
+# Create necessary directories
+RUN mkdir -p logs backups exports
+
+# Initialize database
+RUN npm run init-db
+
+# ==========================================
+# Production Stage
+# ==========================================
+FROM node:18-alpine AS production
+
+# Install SQLite runtime
+RUN apk add --no-cache sqlite
+
+# Create app user for security
+RUN addgroup -g 1001 -S fireapp && \
+    adduser -S fireapp -u 1001
+
+# Set working directory
+WORKDIR /app
+
+# Copy from builder stage
+COPY --from=builder /app .
+
+# Create data volume directories and set permissions
+RUN mkdir -p data logs backups exports && \
+    chown -R fireapp:fireapp /app
+
+# Switch to non-root user
+USER fireapp
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000/api/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1))" || exit 1
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Start the application
+CMD ["npm", "start"]
+
+# ==========================================
+# Development Dockerfile (Dockerfile.dev)
+# ==========================================
+
+# Uncomment below for development environment
+# FROM node:18-alpine
+# 
+# WORKDIR /app
+# 
+# RUN apk add --no-cache python3 make g++ sqlite
+# 
+# COPY package*.json ./
+# RUN npm install
+# 
+# COPY . .
+# 
+# RUN mkdir -p logs backups exports
+# RUN npm run init-db
+# 
+# EXPOSE 3000
+# 
+# CMD ["npm", "run", "dev"]
