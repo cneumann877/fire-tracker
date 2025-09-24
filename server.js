@@ -41,9 +41,13 @@ app.use(helmet({
             styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
             scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
             imgSrc: ["'self'", "data:", "https:"],
-            fontSrc: ["'self'", "https://cdnjs.cloudflare.com"]
+            fontSrc: ["'self'", "https://cdnjs.cloudflare.com"],
+            connectSrc: ["'self'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
+            manifestSrc: ["'self'"]
         }
-    }
+    },
+    crossOriginOpenerPolicy: false, // Disable COOP for development
+    crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
 // ===== RATE LIMITING =====
