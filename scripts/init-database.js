@@ -101,6 +101,7 @@ class DatabaseInitializer {
                     closed_reason TEXT,
                     closed_by_badge TEXT,
                     closed_by_station TEXT,
+                    station_closures TEXT, -- JSON object for tracking station-by-station closures
                     weather_conditions TEXT,
                     temperature TEXT,
                     wind_conditions TEXT,
